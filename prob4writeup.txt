@@ -92,10 +92,10 @@ int main(int argc, char** argv) {
 
 Part 2, Question 1:
 Receiving SIGINT:
-The program does not terminates. SIGINT kills the entire program. In our situation, we implemented a handler for SIGINT. Thus, for a SIGINT that we send to the first thread (the one that handles SIGINT), we do not have terminate. 
+The program does not terminates. SIGINT kills the entire program. In our situation, we implemented a handler for SIGINT. Thus, for a SIGINT that we send to the first thread (the one that handles SIGINT), we do not terminate. 
 
 Receiving SIGSTOP:
-The process pauses. There is no way to ignore SIGSTOP. In our signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP always has to stop a program.
+The process pauses. There is no way to ignore SIGSTOP. In our signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP always has to stop a program. The OS needs a failsafe way to pause a program so it makes sense that SIGSTOP is not ignorable. 
 
 
 Receiving SIGILL:
