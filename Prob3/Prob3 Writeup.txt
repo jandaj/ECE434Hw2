@@ -1,0 +1,47 @@
+Part 1.)
+	1.)Arg contains the number of bytes to be read into the buffer bf from the file descriptor fd
+		Read returns the number of bytes read from the file descriptor, so
+		n may be either 0 if the end of the file descriptor is reached, the number of of bytes read arg, or any value in between
+		0 and arg.
+	
+	2.)wd = wait(&status) blocks the calling process until a child spawned by the calling process exits, and the exit status of the 
+		child process is put into the variable status.
+		WIFSIGNALED(status) == 1 means that Process 618 was terminated with a signal.
+		WTERMSIG(status) == 3 means that Process 618 was terminated with signal 3, which is SIGQUIT
+		Thus, Process 412 likely called kill(618, 3)
+	3.)A process that calls read() on an empty pipe with the write end open will never terminate. For an empty pipe expecting 
+	no more data, read() only returns end of file EOF if the write end is closed by parent and child. If one write end remains open, 
+	then read() will always be expecting more data and will permanantly block the process.
+
+	4.) Assuming that the reader has closed the write end of the pipe, and that the write has closed the read end of the pipe, the 
+		following occur:
+		When a reader process calls read after the last writer has exited, read() returns EOF and the process continues normal
+		execution.
+		When a writer process calls write after the last reader has exited, the process catches a SIGPIPE signal indicating a
+		broken pipe and the process is terminated.
+
+Part 2.)
+	
+	Explanation:
+	The initial process (PID = 1000) fork()s four times in its first for loop, creating the processes with PIDs 1001, 1002, 1003, and 1004
+	All four of these processes block on the read() call in line 19, although process 1002 sleeps for 5 seconds because of the if statement.
+	The parent process 1000 then sends the signal SIGUSR1 to process 1002, which is likely still in the middle of it's sleep(5) call.
+	Process 1000 then calls wait(), which will block until one of its children has terminated.
+	Process 1002 handles the incoming signal with the signal handler, which sends signal #9 (SIGKILL) to the process with PID = 1002+2 = 1004
+	Process 1004 is terminated by the incoming signal SIGKILL, yields an exit code of 0.
+	Process 1002 then calls wait(), which immediately returns because the process has no children, and terminates with exit code 5.
+	In the parent process 1000, because children processes have terminated, wait() returns. 
+		When process 1004 is waited on, WEXITSTATUS(n) = 0, so 0 bytes are written to the pipe.
+		When process 1002 is waited on, WEXITSTATUS(n) = 5, so 5 bytes starting from c are written to the pipe.
+		Assuming that writing 5 bytes from a buffer only containing 4 bytes does not cause a SEGFAULT:
+	Process 1001 unblocks first, and reads 2 bytes from the pipe. Because process 1001 was spawned when i = 0, it does not enter
+	either of the for loops, calls wait() which returns because it has no child, and exits with exit code 2.
+	Process 1003 unblocks next, and reads 2 more bytes from the pipe. Process 1003 was spawned when i = 2, so it enters the for loop
+	at line 20 and spawns 2 children processes with PID = 1005 and 1006.
+	Processes 1005 and 1006 are stuck at the function call at line 23 because f never returns.
+	Process 1003 enters the next for loop at line 25, and permanently blocks with the wait(NULL) call at line 26 because its children
+	never return.
+	Process 1000 returns from its third wait() call at line 33 because process 1001 had exited, but it permanently blocks at line 33 during
+	its 4th iteration of the for loop because it has a child that will never exit (PID 1003).
+	Thus the process tree below arises.
+	
