@@ -22,10 +22,10 @@ void signal_handler(int signum){
         pthread_kill(threads[2], SIGINT);
     }
 
-    if(signum == SIGSTOP) {
-        psignal(signum, "Caught SIGSTOP signal in thread 2.");
-        pthread_kill(threads[0], SIGSTOP);
-        pthread_kill(threads[2], SIGSTOP);
+    if(signum == SIGTSTP) {
+        psignal(signum, "Caught SIGTSTP signal in thread 2.");
+        pthread_kill(threads[0], SIGTSTP);
+        pthread_kill(threads[2], SIGTSTP);
     }
 
     if(signum == SIGILL) {
@@ -44,7 +44,7 @@ void* summer(void* arg) {
     }
     
     if(thread_num == 1) {
-        signal(SIGSTOP, signal_handler); 
+        signal(SIGTSTP, signal_handler); 
     }
 
     if(thread_num == 2){
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     
     pthread_kill(threads[0], SIGINT);
     
-    pthread_kill(threads[1], SIGSTOP);
+    pthread_kill(threads[1], SIGTSTP);
     
     pthread_kill(threads[2], SIGILL);
 	
@@ -94,8 +94,8 @@ Part 2, Question 1:
 Receiving SIGINT:
 The program does not terminates. SIGINT kills the entire program. In our situation, we implemented a handler for SIGINT. Thus, for a SIGINT that we send to the first thread (the one that handles SIGINT), we do not terminate. 
 
-Receiving SIGSTOP:
-The process pauses. There is no way to ignore SIGSTOP. In our signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP always has to stop a program. The OS needs a failsafe way to pause a program so it makes sense that SIGSTOP is not ignorable. 
+Receiving SIGTSTP:
+The process pauses. There is no way to ignore SIGTSTP. In our signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGTSTP always has to stop a program. The OS needs a failsafe way to pause a program so it makes sense that SIGTSTP is not ignorable. 
 
 
 Receiving SIGILL:
@@ -107,8 +107,8 @@ Receiving SIGINT:
 The program terminates. The other threads do not have a signal handler implemented for SIGINT. Thus, when we send a SIGINT to those threads, the program terminates. 
 
 
-Receiving SIGSTOP:
-The process pauses. There is no way to ignore SIGSTOP. Even before, with the signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP can not be ignored. So, in this case, SIGSTOP can still just not be ignored and the program pauses.
+Receiving SIGTSTP:
+The process pauses. There is no way to ignore SIGTSTP. Even before, with the signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGTSTP can not be ignored. So, in this case, SIGTSTP can still just not be ignored and the program pauses.
 
 
 Receiving SIGILL:
