@@ -1,0 +1,118 @@
+PSEUDOCODE: 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h> 
+#include <pthread.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
+
+int NUM_THREADS = 3;
+
+// all of the three threads we are using
+pthread_t threads[3];
+
+void signal_handler(int signum){
+
+    if(signum == SIGINT) {
+        psignal(signum ,"Caught SIGINT signal in thread 1.");
+        pthread_kill(threads[1], SIGINT);
+        pthread_kill(threads[2], SIGINT);
+    }
+
+    if(signum == SIGSTOP) {
+        psignal(signum, "Caught SIGSTOP signal in thread 2.");
+        pthread_kill(threads[0], SIGSTOP);
+        pthread_kill(threads[2], SIGSTOP);
+    }
+
+    if(signum == SIGILL) {
+        psignal(signum, "Caught SIGILL signal in thread 3.");      
+        pthread_kill(threads[0], SIGILL);
+        pthread_kill(threads[1], SIGILL);
+    }
+}
+
+void* summer(void* arg) {
+    // first set signal handler
+    int thread_num = *(int*)arg;
+ 
+    if(thread_num == 0) {
+        signal(SIGINT, signal_handler); 
+    }
+    
+    if(thread_num == 1) {
+        signal(SIGSTOP, signal_handler); 
+    }
+
+    if(thread_num == 2){
+        signal(SIGILL, signal_handler); 
+    }
+
+    // let's get the TID
+    int tid = syscall(SYS_gettid);
+
+    // set sum variable to 0
+    int* sum = (int*) malloc(sizeof(int));
+
+    // iterate and find sum
+    int i;
+    for(i = 0; i < 1000*tid; i++) {
+        *sum += tid;
+    }
+    while(1);
+    return (void*) sum;
+}
+
+int main(int argc, char** argv) {
+
+    // create threads
+    int i;
+    for(i = 0; i < NUM_THREADS; i++) {
+        int thread_number = i;
+        pthread_create(&threads[i], NULL, summer, &thread_number);
+    }
+    
+    pthread_kill(threads[0], SIGINT);
+    
+    pthread_kill(threads[1], SIGSTOP);
+    
+    pthread_kill(threads[2], SIGILL);
+	
+    // wait for threads to join
+    for(i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    return 0;
+}
+
+
+Part 2, Question 1:
+Receiving SIGINT:
+The program does not terminates. SIGINT kills the entire program. In our situation, we implemented a handler for SIGINT. Thus, for a SIGINT that we send to the first thread (the one that handles SIGINT), we do not have terminate. 
+
+Receiving SIGSTOP:
+The process pauses. There is no way to ignore SIGSTOP. In our signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP always has to stop a program.
+
+
+Receiving SIGILL:
+SIGILL still kills the program. SIGILL cannot be ignored. This is because if there is an illegal instruction in the program, ignoring it would lead to that instruction being executed which is really bad design for the OS. 
+
+
+Part 2, Question 2:
+Receiving SIGINT:
+The program terminates. The other threads do not have a signal handler implemented for SIGINT. Thus, when we send a SIGINT to those threads, the program terminates. 
+
+
+Receiving SIGSTOP:
+The process pauses. There is no way to ignore SIGSTOP. Even before, with the signal handler, we attempt to ignore it by just printing out the signal number and thread id. But, the process still pauses because SIGSTOP can not be ignored. So, in this case, SIGSTOP can still just not be ignored and the program pauses.
+
+
+Receiving SIGILL:
+The program is killed. The other threads do not have a signal handler implemented for SIGILL, so when it is received the program exits.
+
+
+
